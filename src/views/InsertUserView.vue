@@ -15,17 +15,19 @@ export default {
     };
   },
   methods: {
-    getDate() {
+    async getDate() {
       console.log(this.formLabelAlign);
-      const res = axios.post('http://localhost:8080/user/insert', this.formLabelAlign);
-      console.log(res);
-      alert(res)
-      alert(res.status)
+      const res = await axios.post('http://localhost:8080/user/insert', this.formLabelAlign);
       if (res.data === true) {
         ElMessage({
           message: '添加成功',
           type: 'success',
         })
+      } else {
+        ElMessage({
+          message: '添加失败',
+          type: 'error',
+        });
       }
     },
   }
