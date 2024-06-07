@@ -1,6 +1,6 @@
 <script>
-import axios from "axios";
 import {ElMessage} from 'element-plus'
+import myAxios from "@/utils/myAxios.js";
 
 export default {
   name: "UserView",
@@ -15,9 +15,9 @@ export default {
     };
   },
   methods: {
-    async getDate() {
+    async insertUser() {
       console.log(this.formLabelAlign);
-      const res = await axios.post('http://localhost:8080/user/insert', this.formLabelAlign);
+      const res = await myAxios.post('/user/insert', this.formLabelAlign);
       if (res.data === true) {
         ElMessage({
           message: '添加成功',
@@ -64,7 +64,7 @@ export default {
         </el-select>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="getDate">添加用户</el-button>
+        <el-button type="primary" @click="insertUser">添加用户</el-button>
       </el-form-item>
     </el-form>
   </div>

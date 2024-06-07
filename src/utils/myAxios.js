@@ -1,7 +1,9 @@
 import axios from "axios";
+import {ElMessage} from "element-plus";
 
 const myAxios = axios.create({
-    baseURL: 'http://localhost:8080',
+    baseURL: 'http://localhost:8081',
+    // baseURL: 'http://47.98.107.186:8081',
 });
 
 // 添加请求拦截器
@@ -18,7 +20,11 @@ myAxios.interceptors.request.use(function (config) {
 myAxios.interceptors.response.use(function (response) {
     console.log("我接收到请求了！")
     // 对响应数据做点什么
-    return response.data;
+    if (response.data.code === 0) {
+        return response.data;
+    } else {
+        ElMessage.error(response.data.msg ? response.data.msg : '服务异常')
+    }
 }, function (error) {
     // 超出 2xx 范围的状态码都会触发该函数。
     // 对响应错误做点什么

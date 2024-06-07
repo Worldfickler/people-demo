@@ -2,32 +2,89 @@
 import {ElMessage} from "element-plus";
 import router from "@/router/index.js";
 import myAxios from "@/utils/myAxios.js";
+import {Operation} from "@element-plus/icons-vue";
 
 export default {
-  name: "UserView",
+  components: {Operation},
   data() {
     return {
       users: [],
       searchUserId: '',
-      userUpdateDialogVisible: false,
+      userInfoDialogVisible: false,
       userInfo: {
+        id: '',
         name: '',
         phone: '',
         idCard: '',
-        role: '',
+        userWorkDtoList: [
+          {
+            roleId: '',
+            departmentId: '',
+            postId: ''
+          }
+        ]
       },
+      roles: [{
+        id: '',
+        roleName: ''
+      }],
+      departments: [{
+        id: '',
+        departmentName: ''
+      }],
+      posts: [{
+        id: '',
+        postName: ''
+      }],
       optionalDialogVisible: false,
       isLeave: false,
       leaveUserId: '',
     };
   },
+  mounted() {
+    this.getRoles()
+    this.getPosts()
+    this.getDepartments()
+  },
   methods: {
+    async getRoles() {
+      const res = await myAxios.get('/role/list')
+      if (res.code === 0) {
+        this.roles = res.data;
+      } else {
+        ElMessage({
+          message: '角色信息加载失败',
+          type: 'error',
+        });
+      }
+    },
+    async getDepartments() {
+      const res = await myAxios.get('/department/list')
+      if (res.code === 0) {
+        this.departments = res.data;
+      } else {
+        ElMessage({
+          message: '所在部门/工作位置信息加载失败',
+          type: 'error',
+        });
+      }
+    },
+    async getPosts() {
+      const res = await myAxios.get('/post/list')
+      if (res.code === 0) {
+        this.posts = res.data;
+      } else {
+        ElMessage({
+          message: '职位/岗位/工种信息加载失败',
+          type: 'error',
+        });
+      }
+    },
     // 查询全部
     async getDate() {
       const res = await myAxios.get('/user/selectAll')
-      if (res.data) {
-        const usersList = res.data;
-        this.users = usersList;
+      if (res.code === 0) {
+        this.users = res.data;
         ElMessage({
           message: '查询成功',
           type: 'success',
@@ -133,16 +190,22 @@ export default {
           return '';
       }
     },
+    insertUserDialog() {
+      this.userInfoDialogVisible = true
+    },
     updateUserDialog(userInfo) {
-      this.userUpdateDialogVisible = true
-      this.userInfo = userInfo
+      this.userInfoDialogVisible = true
+      this.userInfo.id = userInfo.id
+      this.userInfo.name = userInfo.name
+      this.userInfo.phone = userInfo.phone
+      this.userInfo.idCard = userInfo.idCard
     },
     async updateUserInfo() {
       const res = await myAxios.post('/user/update', this.userInfo);
       console.log(this.userInfo)
       if (res.data === true) {
         await this.getDate()
-        this.userUpdateDialogVisible = false
+        this.userInfoDialogVisible = false
         ElMessage({
           message: '更新成功',
           type: 'success',
@@ -153,6 +216,23 @@ export default {
           type: 'error',
         });
       }
+      this.resetForm();
+    },
+    async insertUser() {
+      console.log(this.userInfo);
+      const res = await myAxios.post('/user/insert', this.userInfo);
+      if (res.code === 0) {
+        ElMessage({
+          message: '添加成功',
+          type: 'success',
+        })
+      } else {
+        ElMessage({
+          message: '添加失败',
+          type: 'error',
+        });
+      }
+      this.resetForm();
     },
     optionalDialog(userId) {
       this.optionalDialogVisible = true
@@ -185,6 +265,37 @@ export default {
         path: `/user/info/${userId}`
       })
     },
+    // 对话框关闭操作
+    handleDialogClose() {
+      // 清空表单内容
+      this.resetForm();
+    },
+    // 清空表单内容
+    resetForm() {
+      this.userInfo = {
+        id: '',
+        name: '',
+        phone: '',
+        idCard: '',
+        userWorkDtoList: [
+          {
+            roleId: '',
+            departmentId: '',
+            postId: ''
+          }
+        ]
+      };
+    },
+    addWorkInfo() {
+      this.userInfo.userWorkDtoList.push({
+        roleId: '',
+        departmentId: '',
+        postId: ''
+      })
+    },
+    deleteWorkInfo(index) {
+      this.userInfo.userWorkDtoList.splice(index, 1)
+    },
   }
 }
 </script>
@@ -195,55 +306,45 @@ export default {
         label-position="left"
         label-width="auto"
         style="max-width：100%"
+        class="userInfo"
     >
       <el-form-item>
         <el-button type="primary" @click="getDate">查询全部</el-button>
+        <el-button type="primary" @click="insertUserDialog()">新增用户</el-button>
       </el-form-item>
       <el-form-item style="margin-bottom: 10px">
         <el-input v-model.number="searchUserId" placeholder="请输入用户ID" type="text" style="width: 180px"/>
         <el-button type="primary" @click="selectUser" style="margin-left: 10px">查询</el-button>
       </el-form-item>
       <el-table :data="users" border style="width: 100%">
-        <el-table-column prop="userId" label="用户ID" width="180"/>
+        <el-table-column prop="id" label="用户ID" width="180"/>
         <el-table-column prop="name" label="姓名" width="180"/>
         <el-table-column prop="phone" label="手机号" width="180"/>
         <el-table-column prop="idCard" label="身份证" width="180"/>
-        <el-table-column prop="role" label="角色" width="100">
-          <template #default="scope">
-            <el-tag :type="getRoleTagType(scope.row.role)">
-              {{ getRoleText(scope.row.role) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="scope">
-            <el-tag :type="getStatusTagType(scope.row.status)">
-              {{ getStatusText(scope.row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
         <el-table-column label="操作" width="280">
           <template #default="scope">
             <el-button size="small" type="success" @click="updateUserDialog(scope.row)">
               更新
             </el-button>
-            <el-button size="small" type="primary" @click="optionalDialog(scope.row.userId)">
+            <el-button size="small" type="primary" @click="optionalDialog(scope.row.id)">
               审批
             </el-button>
-            <el-button size="small" type="danger" @click="deleteUser(scope.row.userId)">
+            <el-button size="small" type="danger" @click="deleteUser(scope.row.id)">
               删除
             </el-button>
-            <el-button size="small" @click="toUserInfo(scope.row.userId)">
+            <el-button size="small" @click="toUserInfo(scope.row.id)">
               详情
             </el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-form>
+    <!--新增/更新用户信息弹窗-->
     <el-dialog
-        v-model="userUpdateDialogVisible"
-        title="更新用户信息"
+        v-model="userInfoDialogVisible"
+        :title="userInfo.id ? '更新用户信息' : '新增用户信息'"
         width="800px"
+        @close="handleDialogClose"
     >
       <el-form
           label-position="left"
@@ -260,28 +361,63 @@ export default {
         <el-form-item label="身份证">
           <el-input v-model="userInfo.idCard" placeholder="请输入身份证"/>
         </el-form-item>
-        <el-form-item label="角色">
+        <el-form-item
+            v-for="(userWork, index) of userInfo.userWorkDtoList"
+            :label="`工作信息-${index + 1}`"
+        >
           <el-select
-              v-model="userInfo.role"
+              style="margin-bottom: 5px"
+              v-model="userWork.roleId"
               placeholder="请选择角色"
               clearable
           >
-            <el-option label="建设人员" value="1"/>
-            <el-option label="管理人员" value="2"/>
-            <el-option label="工作人员" value="3"/>
-            <el-option label="其他人员" value="4"/>
+            <el-option
+                v-for="item in roles"
+                :key="item.id"
+                :label="item.roleName"
+                :value="item.id"
+            />
           </el-select>
+          <el-select
+              style="margin-bottom: 5px"
+              v-model="userWork.departmentId"
+              placeholder="请选择工作部门/位置"
+              clearable
+          >
+            <el-option
+                v-for="item in departments"
+                :key="item.id"
+                :label="item.departmentName"
+                :value="item.id"
+            />
+          </el-select>
+          <el-select
+              style="margin-bottom: 5px"
+              v-model="userWork.postId"
+              placeholder="请选择岗位/部门/工种"
+              clearable
+          >
+            <el-option
+                v-for="item in posts"
+                :key="item.id"
+                :label="item.postName"
+                :value="item.id"
+            />
+          </el-select>
+          <el-button type="danger" @click="deleteWorkInfo(index)">删除工作信息</el-button>
         </el-form-item>
+        <el-button type="success" @click="addWorkInfo">增加工作信息</el-button>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="userUpdateDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="updateUserInfo">
-            更新
+          <el-button @click="userInfoDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="userInfo.id ? updateUserInfo : insertUser">
+            {{ userInfo.id ? '更新' : '添加' }}
           </el-button>
         </div>
       </template>
     </el-dialog>
+    <!--审批弹窗-->
     <el-dialog
         v-model="optionalDialogVisible"
         title="审批"
@@ -294,5 +430,4 @@ export default {
 </template>
 
 <style scoped>
-
 </style>
