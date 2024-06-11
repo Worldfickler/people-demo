@@ -9,7 +9,7 @@ export default {
   data() {
     return {
       users: [],
-      searchUserId: '',
+      searchUserId: "",
       userInfoDialogVisible: false,
       userInfo: {
         id: '',
@@ -18,6 +18,7 @@ export default {
         idCard: '',
         userWorkDtoList: [
           {
+            id: '',
             roleId: '',
             departmentId: '',
             postId: ''
@@ -39,9 +40,17 @@ export default {
       optionalDialogVisible: false,
       isLeave: false,
       leaveUserId: '',
+      page: {
+        // dataList: [],
+        total: 0,
+        currentPage: 1,
+        pageSize: 12
+      },
+      keyword: "",
     };
   },
   mounted() {
+    this.getDate()
     this.getRoles()
     this.getPosts()
     this.getDepartments()
@@ -82,9 +91,15 @@ export default {
     },
     // 查询全部
     async getDate() {
-      const res = await myAxios.get('/user/selectAll')
+      const res = await myAxios.get('/user/selectAll', {
+        params: {
+          pageSize: this.page.pageSize,
+          currentPage: this.page.currentPage
+        }
+      })
       if (res.code === 0) {
-        this.users = res.data;
+        this.users = res.data.records;
+        this.page.total = res.data.total;
         ElMessage({
           message: '查询成功',
           type: 'success',
@@ -97,15 +112,17 @@ export default {
       }
     },
     // 根据用户ID查询
-    async selectUser() {
+    async selectUser(userId) {
       const res = await myAxios.get('/user/select', {
         params: {
-          userId: this.searchUserId
+          userId: userId
         }
       })
-      // const res = await myAxios().get('/user/select')
-      if (res.data) {
-        this.users = [res.data]
+      if (res.code === 0) {
+        // this.users = [res.data]
+        if (res.data.userWorkDtoList.length !== 0) {
+          this.userInfo.userWorkDtoList = res.data.userWorkDtoList
+        }
         console.log(this.users)
         ElMessage({
           message: '查询成功',
@@ -118,15 +135,18 @@ export default {
         });
       }
     },
-    async deleteUser(userId) {
-      alert(userId)
-      const res = await myAxios.post('/user/delete', null, {
+    // 全字段模糊查询
+    async searchUser(keyword) {
+      const res = await myAxios.get('/user/search', {
         params: {
-          userId: userId
+          keyword: keyword,
+          pageSize: this.page.pageSize,
+          currentPage: this.page.currentPage
         }
       })
-      if (res.data === true) {
-        this.getDate()
+      if (res.code === 0) {
+        this.users = res.data.records;
+        this.page.total = res.data.total;
         ElMessage({
           message: '查询成功',
           type: 'success',
@@ -134,6 +154,26 @@ export default {
       } else {
         ElMessage({
           message: '查询失败',
+          type: 'error',
+        });
+      }
+    },
+    // 删除用户
+    async deleteUser(userId) {
+      const res = await myAxios.post('/user/delete', null, {
+        params: {
+          userId: userId
+        }
+      })
+      if (res.code === 0) {
+        this.getDate()
+        ElMessage({
+          message: '删除成功',
+          type: 'success',
+        })
+      } else {
+        ElMessage({
+          message: '删除失败',
           type: 'error',
         });
       }
@@ -199,11 +239,12 @@ export default {
       this.userInfo.name = userInfo.name
       this.userInfo.phone = userInfo.phone
       this.userInfo.idCard = userInfo.idCard
+      this.selectUser(userInfo.id);
     },
+    // 更新用户
     async updateUserInfo() {
       const res = await myAxios.post('/user/update', this.userInfo);
-      console.log(this.userInfo)
-      if (res.data === true) {
+      if (res.code === 0) {
         await this.getDate()
         this.userInfoDialogVisible = false
         ElMessage({
@@ -217,7 +258,9 @@ export default {
         });
       }
       this.resetForm();
+      this.userInfoDialogVisible = false
     },
+    // 新增用户
     async insertUser() {
       console.log(this.userInfo);
       const res = await myAxios.post('/user/insert', this.userInfo);
@@ -233,6 +276,7 @@ export default {
         });
       }
       this.resetForm();
+      this.userInfoDialogVisible = false
     },
     optionalDialog(userId) {
       this.optionalDialogVisible = true
@@ -293,9 +337,24 @@ export default {
         postId: ''
       })
     },
+    // 删除空的工作信息
     deleteWorkInfo(index) {
       this.userInfo.userWorkDtoList.splice(index, 1)
     },
+    // 删除用户工作信息
+    async deleteUserWorkInfo(userWorkId, index) {
+      alert(userWorkId)
+      await myAxios.post('/user_work/delete_works', null, {
+        params: {
+          userWorkId: userWorkId
+        }
+      });
+      this.deleteWorkInfo(index)
+    },
+    handlePageChange(pageNum) {
+      this.page.currentPage = pageNum;
+      this.getDate();
+    }
   }
 }
 </script>
@@ -313,8 +372,8 @@ export default {
         <el-button type="primary" @click="insertUserDialog()">新增用户</el-button>
       </el-form-item>
       <el-form-item style="margin-bottom: 10px">
-        <el-input v-model.number="searchUserId" placeholder="请输入用户ID" type="text" style="width: 180px"/>
-        <el-button type="primary" @click="selectUser" style="margin-left: 10px">查询</el-button>
+        <el-input v-model="keyword" placeholder="全字段模糊查询" type="text" style="width: 180px"/>
+        <el-button type="primary" @click="searchUser(keyword)" style="margin-left: 10px">查询</el-button>
       </el-form-item>
       <el-table :data="users" border style="width: 100%">
         <el-table-column prop="id" label="用户ID" width="180"/>
@@ -338,6 +397,14 @@ export default {
           </template>
         </el-table-column>
       </el-table>
+      <!--分页-->
+      <el-pagination
+          :total="page.total"
+          :current-page="page.currentPage"
+          :page-size="page.pageSize"
+          layout="prev, pager, next"
+          @current-change="handlePageChange"
+      ></el-pagination>
     </el-form>
     <!--新增/更新用户信息弹窗-->
     <el-dialog
@@ -404,14 +471,19 @@ export default {
                 :value="item.id"
             />
           </el-select>
-          <el-button type="danger" @click="deleteWorkInfo(index)">删除工作信息</el-button>
+          <!--删除用户工作信息-->
+          <el-button type="danger"
+                     @click="(userInfo.userWorkDtoList[index].postId && userInfo.userWorkDtoList[index].roleId && userInfo.userWorkDtoList[index].departmentId) ? deleteUserWorkInfo(userInfo.userWorkDtoList[index].id, index) : deleteWorkInfo(index)">
+            删除工作信息
+          </el-button>
         </el-form-item>
         <el-button type="success" @click="addWorkInfo">增加工作信息</el-button>
       </el-form>
+      <!--更新添加操作-->
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="userInfoDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="userInfo.id ? updateUserInfo : insertUser">
+          <el-button type="primary" @click="userInfo.id ? updateUserInfo() : insertUser()">
             {{ userInfo.id ? '更新' : '添加' }}
           </el-button>
         </div>
