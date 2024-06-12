@@ -5,6 +5,7 @@ import InsertUserView from "@/views/InsertUserView.vue";
 import ListUserView from "@/views/ListUserView.vue";
 import UserInfoView from "@/views/UserInfoView.vue";
 import UserManageView from "@/views/user/UserManageView.vue";
+import DealUserLeave from "@/views/admin/DealUserLeave.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -37,6 +38,11 @@ const router = createRouter({
       name: '用户详细信息',
       component: UserInfoView
     },
+    {
+      path: '/user/manage',
+      name: '审批页面',
+      component: DealUserLeave
+    }
   ]
 })
 

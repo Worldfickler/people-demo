@@ -7,6 +7,42 @@ import {Operation} from "@element-plus/icons-vue";
 export default {
   components: {Operation},
   data() {
+    const validateName = (rule, value, callback) => {
+      if (!value) {
+        return callback(new Error('请输入姓名'));
+      }
+      setTimeout(() => {
+        if (value.length < 2) {
+          callback(new Error('姓名长度不能小于2个字符'));
+        } else {
+          callback();
+        }
+      }, 1000);
+    };
+    const validatePhone = (rule, value, callback) => {
+      if (!value) {
+        return callback(new Error('请输入手机号'));
+      }
+      // 简单的手机号校验，你可以使用更复杂的正则或库来校验
+      const reg = /^1[3-9]\d{9}$/;
+      if (!reg.test(value)) {
+        callback(new Error('请输入正确的手机号'));
+      } else {
+        callback();
+      }
+    };
+    const validateIdCard = (rule, value, callback) => {
+      if (!value) {
+        return callback(new Error('请输入身份证'));
+      }
+      // 身份证校验
+      const reg = /^([1-9]\d{5})(\d{4})(\d{2})(\d{2})(\d{3})(\d|X)$/;
+      if (!reg.test(value)) {
+        callback(new Error('请输入正确的身份证'));
+      } else {
+        callback();
+      }
+    };
     return {
       users: [],
       searchUserId: "",
@@ -47,6 +83,17 @@ export default {
         pageSize: 12
       },
       keyword: "",
+      rules: {
+        name: [
+          {validator: validateName, trigger: 'blur'}
+        ],
+        phone: [
+          {validator: validatePhone, trigger: 'blur'}
+        ],
+        idCard: [
+          {validator: validateIdCard, trigger: 'blur'}
+        ]
+      },
     };
   },
   mounted() {
@@ -278,19 +325,25 @@ export default {
       this.resetForm();
       this.userInfoDialogVisible = false
     },
+    // 审批弹窗
     optionalDialog(userId) {
       this.optionalDialogVisible = true
       this.leaveUserId = userId
+      this.userInfo.userWorkDtoList = []
+      this.selectUser(userId);
     },
-    async agreeOptional() {
+    async dealLeave(roleId, status) {
       alert(this.leaveUserId)
+      // alert(userId)
       const res = await myAxios.post('/leave/dealleave', null, {
         params: {
-          id: this.leaveUserId
+          userId: this.leaveUserId,
+          roleId: roleId,
+          status: status,
         }
       });
       console.log(this.userInfo)
-      if (res.data === true) {
+      if (res.code === 0) {
         await this.getDate()
         this.optionalDialogVisible = false
         ElMessage({
@@ -370,6 +423,7 @@ export default {
       <el-form-item>
         <el-button type="primary" @click="getDate">查询全部</el-button>
         <el-button type="primary" @click="insertUserDialog()">新增用户</el-button>
+        <el-button type="primary" @click="insertUserDialog()">筛选请假</el-button>
       </el-form-item>
       <el-form-item style="margin-bottom: 10px">
         <el-input v-model="keyword" placeholder="全字段模糊查询" type="text" style="width: 180px"/>
@@ -416,16 +470,17 @@ export default {
       <el-form
           label-position="left"
           label-width="auto"
+          :rules="rules"
           :model="userInfo"
           style="max-width: 600px; margin: 15px"
       >
-        <el-form-item label="姓名">
+        <el-form-item label="姓名" prop="name">
           <el-input v-model="userInfo.name" placeholder="请输入姓名"/>
         </el-form-item>
-        <el-form-item label="手机号">
+        <el-form-item label="手机号" prop="phone">
           <el-input v-model="userInfo.phone" placeholder="请输入手机号"/>
         </el-form-item>
-        <el-form-item label="身份证">
+        <el-form-item label="身份证" prop="idCard">
           <el-input v-model="userInfo.idCard" placeholder="请输入身份证"/>
         </el-form-item>
         <el-form-item
@@ -495,8 +550,17 @@ export default {
         title="审批"
         width="500px"
     >
-      <el-button type="success" @click="agreeOptional">同意</el-button>
-      <el-button type="danger" @click="refuseOptional">拒绝</el-button>
+      <div style="margin-bottom: 10px" v-for="(item, index) in userInfo.userWorkDtoList" :key="index">
+        <!--        {{ userInfo.userWorkDtoList }}-->
+        <div v-if="item.status === 1">
+          <span> {{ (roles.find(role => role.id === item.roleId) || {}).roleName || 'Unknown Role' }} </span>
+          <el-button style="margin-left: 50px" type="success" @click="dealLeave(item.roleId, 2)">同意</el-button>
+          <el-button type="danger" @click="dealLeave(item.roleId, 0)">拒绝</el-button>
+        </div>
+        <!--        <div v-else>-->
+        <!--          <h1>该用户暂时请假请求</h1>-->
+        <!--        </div>-->
+      </div>
     </el-dialog>
   </div>
 </template>

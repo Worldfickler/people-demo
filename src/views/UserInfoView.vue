@@ -17,16 +17,16 @@ export default {
     return {
       userId: '',
       users: {
-        userId: '',
-        name: '',
-        phone: '',
-        idCard: '',
+        userId: '1',
+        name: '1',
+        phone: '1',
+        idCard: '1',
         userWorkDtoList: [{
-          id: '',
-          roleId: '',
-          departmentId: '',
-          postId: '',
-          status: ''
+          id: '1',
+          roleId: '0',
+          departmentId: '0',
+          postId: '0',
+          status: '0'
         }]
       },
       userLocation: [],
@@ -244,6 +244,8 @@ export default {
           </div>
         </template>
         <span v-if="roles !== null">
+<!--          {{ item.roleId }}-->
+          <!--          {{ roles }}-->
           {{ (roles.find(role => role.id === item.roleId) || {}).roleName || 'Unknown Role' }}
         </span>
       </el-descriptions-item>
@@ -257,8 +259,10 @@ export default {
           </div>
         </template>
         <span v-if="departments != null">
+<!--          {{ item.departmentId }}-->
+          <!--          {{ departments }}-->
           {{
-            departments.find(department => department.id === item.departmentId).departmentName || 'Unknown Department'
+            (departments.find(department => department.id === item.departmentId) || {}).departmentName || 'Unknown Department'
           }}
         </span>
       </el-descriptions-item>
@@ -272,7 +276,9 @@ export default {
           </div>
         </template>
         <span v-if="posts != null">
-          {{ posts.find(post => post.id === item.postId).postName || 'Unknown Post' }}
+<!--          {{ item.postId }}-->
+          <!--          {{ posts }}-->
+          {{ (posts.find(post => post.id === item.postId) || {}).postName || 'Unknown Post' }}
         </span>
       </el-descriptions-item>
       <el-descriptions-item>
@@ -285,16 +291,20 @@ export default {
           </div>
         </template>
         <span v-if="statusList !== null">
-          {{ statusList.find(statu => statu.id === item.status).statusName || 'Unknown Status' }}
+<!--          {{ item.status }}-->
+<!--          {{ statusList }}-->
+          {{ (statusList.find(statu => statu.id === item.status) || {}).statusName || 'Unknown Status' }}
         </span>
         <span v-if="item.status === 0">
           <el-button type="success" style="margin-left: 20px" @click="askForLeave(userId, item.roleId)">请假</el-button>
         </span>
         <span v-else-if="item.status === 1">
-          <el-button type="primary" style="margin-left: 20px" @click="cancelLeave(userId, item.roleId, item.status)">取消</el-button>
+          <el-button type="primary" style="margin-left: 20px"
+                     @click="cancelLeave(userId, item.roleId, item.status)">取消</el-button>
         </span>
         <span v-else-if="item.status === 2">
-          <el-button type="warning" style="margin-left: 20px" @click="cancelLeave(userId, item.roleId, item.status)">销假</el-button>
+          <el-button type="warning" style="margin-left: 20px"
+                     @click="cancelLeave(userId, item.roleId, item.status)">销假</el-button>
         </span>
         <span v-else>
           <el-button type="danger" style="margin-left: 20px">未知状态</el-button>
