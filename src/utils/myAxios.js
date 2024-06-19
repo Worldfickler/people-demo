@@ -2,8 +2,8 @@ import axios from "axios";
 import {ElMessage} from "element-plus";
 
 const myAxios = axios.create({
-    baseURL: 'http://localhost:8081',
-    // baseURL: 'http://47.98.107.186:8081',
+    // baseURL: 'http://localhost:8081',
+    baseURL: 'http://121.37.242.83:8081',
 });
 
 // 添加请求拦截器
